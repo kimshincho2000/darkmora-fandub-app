@@ -1,18 +1,17 @@
-name: Build Android APK
+name: Build Multi-Platform (Android APK & Windows EXE)
 
 on:
   push:
     branches: [ "main", "master" ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
-  build:
-    name: Build Flutter APK
+  build-android:
+    name: Build Android APK
     runs-on: ubuntu-latest
-
-    permissions:
-      contents: write
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -44,19 +43,97 @@ jobs:
           mkdir -p output
           cp build/app/outputs/flutter-apk/app-release.apk output/darkmora-fandub.apk
 
-      - name: Upload APK to GitHub Artifacts
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: darkmora-fandub-apk
           path: output/darkmora-fandub.apk
-          retention-days: 30
+          retention-days: 14
+
+  build-windows:
+    name: Build Windows EXE & Portable
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Enable Windows Desktop
+        run: flutter config --enable-windows-desktop
+
+      - name: Create Windows scaffolding
+        run: flutter create --platforms=windows --org uz.darkmora --project-name darkmora_fandub .
+
+      - name: Get Flutter dependencies
+        run: flutter pub get
+
+      - name: Build Windows Release
+        run: flutter build windows --release
+
+      - name: Package Portable Windows ZIP
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path output
+          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath output\DarkMora-Fandub-Windows-Portable.zip
+
+      - name: Compile Inno Setup Installer EXE
+        shell: pwsh
+        run: |
+          choco install innosetup --no-progress -y
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" windows_installer.iss
+
+      - name: Upload Windows Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: darkmora-windows-release
+          path: output/*
+          retention-days: 14
+
+  publish-release:
+    name: Publish Release (Android APK + Windows EXE)
+    needs: [build-android, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Android Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: darkmora-fandub-apk
+          path: release_files
+
+      - name: Download Windows Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: darkmora-windows-release
+          path: release_files
+
+      - name: Display downloaded release files
+        run: ls -lh release_files
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.2.0
-          name: "DarkMora Fandub v1.2.0 (Studio & Dubbers Edition)"
-          body: "Official DarkMora Multi-Tenant Fandub Anime Streaming Android APK with Fandub Studio Workspace, Collaborative Kanban Pipeline, Studio Chat, and Dubbers Catalog."
-          files: output/darkmora-fandub.apk
+          tag_name: v1.2.1
+          name: "DarkMora Fandub v1.2.1 (Notebook Windows EXE & Android APK)"
+          body: |
+            ## DarkMora Fandub v1.2.1 Release
+
+            ### Yuklab olish / Download:
+            - 💻 **Windows Notebook / PC O'rnatuvchi fayli (Installer EXE):** `DarkMora-Fandub-Windows-Setup.exe`
+            - 💻 **Windows Portable Versiya (ZIP):** `DarkMora-Fandub-Windows-Portable.zip`
+            - 📱 **Android Mobil Ilova (APK):** `darkmora-fandub.apk`
+
+            ### Yangi imkoniyatlar:
+            - **Noutbuk va Windows kompyuterlar uchun maxsus `.exe` o'rnatuvchi va portable talqini.**
+            - **Fandub Studio Workspace & Kanban:** Tarjima, ovoz yozish, montaj va tekshiruv bosqichlari.
+            - **Studiyaviy jamoa chati:** Fandub dublyorlari, dublyorkalari, tarjimonlar va taymerlar o'rtasida ichki muloqot.
+            - **Ovoz ustalari & Dublyorlar katalogi:** Audio namunalar va ijrochilar profillari.
+            - **Multi-Tenant Fandub Player:** Video oqimlarini fandublar bo'yicha almashtirish va sharhlar qoldirish.
+            - **2FA SuperAdmin boshqaruv tizimi.**
+          files: release_files/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

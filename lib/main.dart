@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fvp/fvp.dart' as fvp;
 import 'theme/app_theme.dart';
 import 'screens/home_screen.dart';
 import 'screens/fandubs_screen.dart';
@@ -7,6 +8,7 @@ import 'screens/profile_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  fvp.registerWith();
   runApp(const DarkMoraFandubApp());
 }
 

@@ -1,7 +1,7 @@
 name: darkmora_fandub
 description: DarkMora Multi-Tenant Fandub Anime Aggregator Mobile App
 publish_to: 'none'
-version: 1.2.0+3
+version: 1.2.1+4
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -13,6 +13,7 @@ dependencies:
   provider: ^6.1.1
   cached_network_image: ^3.3.1
   video_player: ^2.8.2
+  fvp: ^0.39.1
   chewie: ^1.7.4
   shared_preferences: ^2.2.2
   google_fonts: ^6.1.0
