@@ -32,6 +32,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   bool _isLoading = true;
   String? _errorMessage;
   Timer? _historyTimer;
+  double _playbackSpeed = 1.0;
 
   @override
   void initState() {
@@ -39,7 +40,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _currentRelease = widget.initialRelease;
     _initializePlayer(_currentRelease);
 
-    // Save history periodically
     _historyTimer = Timer.periodic(const Duration(seconds: 15), (_) {
       if (_videoPlayerController != null &&
           _videoPlayerController!.value.isPlaying) {
@@ -57,13 +57,13 @@ class _PlayerScreenState extends State<PlayerScreen> {
     });
 
     try {
-      // Resolve stream URL (fetches secure signed DarkMora stream link)
       final resolved = await _apiService.resolveStream(release.id);
       final streamUrl = resolved['stream_url'] ?? release.streamUrl;
 
       final oldController = _videoPlayerController;
       _videoPlayerController = VideoPlayerController.networkUrl(Uri.parse(streamUrl));
       await _videoPlayerController!.initialize();
+      await _videoPlayerController!.setPlaybackSpeed(_playbackSpeed);
 
       if (seekTo != null) {
         await _videoPlayerController!.seekTo(seekTo);
@@ -97,6 +97,58 @@ class _PlayerScreenState extends State<PlayerScreen> {
         _errorMessage = "Videoni yuklashda xatolik yuz berdi: $e";
       });
     }
+  }
+
+  void _skipIntro() {
+    if (_videoPlayerController != null && _videoPlayerController!.value.isInitialized) {
+      final cur = _videoPlayerController!.value.position;
+      _videoPlayerController!.seekTo(cur + const Duration(seconds: 85));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Intro o'tkazib yuborildi (+85s)"), duration: Duration(seconds: 1)),
+      );
+    }
+  }
+
+  void _seekRelative(int seconds) {
+    if (_videoPlayerController != null && _videoPlayerController!.value.isInitialized) {
+      final cur = _videoPlayerController!.value.position;
+      final target = cur + Duration(seconds: seconds);
+      _videoPlayerController!.seekTo(target > Duration.zero ? target : Duration.zero);
+    }
+  }
+
+  void _showSpeedPicker() {
+    final speeds = [0.75, 1.0, 1.25, 1.5, 2.0];
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppTheme.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text("Ijro Tezligi (Speed)", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              ...speeds.map((s) {
+                final isSel = _playbackSpeed == s;
+                return ListTile(
+                  title: Text("${s}x", style: TextStyle(color: isSel ? AppTheme.primary : AppTheme.text, fontWeight: isSel ? FontWeight.bold : FontWeight.normal)),
+                  trailing: isSel ? const Icon(Icons.check, color: AppTheme.primary) : null,
+                  onTap: () {
+                    setState(() => _playbackSpeed = s);
+                    _videoPlayerController?.setPlaybackSpeed(s);
+                    Navigator.pop(ctx);
+                  },
+                );
+              }).toList(),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   void _showFandubSwitcher() {
@@ -219,6 +271,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
         ),
         actions: [
           IconButton(
+            tooltip: "Tezlik",
+            icon: Text("${_playbackSpeed}x", style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary, fontSize: 13)),
+            onPressed: _showSpeedPicker,
+          ),
+          IconButton(
             tooltip: "Fandubni almashtirish",
             icon: const Icon(Icons.record_voice_over, color: AppTheme.primary),
             onPressed: _showFandubSwitcher,
@@ -247,6 +304,39 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                     .videoPlayerController.value.isInitialized
                             ? Chewie(controller: _chewieController!)
                             : const CircularProgressIndicator(color: AppTheme.primary),
+              ),
+            ),
+            // Quick Control Bar (Skip Intro, 10s Rewind/Forward)
+            Container(
+              color: Colors.black87,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  TextButton.icon(
+                    style: TextButton.styleFrom(foregroundColor: Colors.white70),
+                    icon: const Icon(Icons.replay_10, size: 20),
+                    label: const Text("-10s"),
+                    onPressed: () => _seekRelative(-10),
+                  ),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.surface,
+                      foregroundColor: AppTheme.accent,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      side: const BorderSide(color: AppTheme.line),
+                    ),
+                    icon: const Icon(Icons.fast_forward, size: 16),
+                    label: const Text("Intro o'tkazish (+85s)", style: TextStyle(fontSize: 12)),
+                    onPressed: _skipIntro,
+                  ),
+                  TextButton.icon(
+                    style: TextButton.styleFrom(foregroundColor: Colors.white70),
+                    icon: const Icon(Icons.forward_10, size: 20),
+                    label: const Text("+10s"),
+                    onPressed: () => _seekRelative(10),
+                  ),
+                ],
               ),
             ),
             // Bottom Action Bar
@@ -279,7 +369,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           ),
                         ),
                         Text(
-                          "Mavjud ovozlar: ${widget.allReleases.length} ta jamoa",
+                          "Mavjud: ${widget.allReleases.length} ta fandub jamoasi",
                           style: const TextStyle(fontSize: 12, color: AppTheme.muted),
                         ),
                       ],

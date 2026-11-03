@@ -49,6 +49,29 @@ class ApiService {
     };
   }
 
+  // --- Comments ---
+  Future<List<Map<String, dynamic>>> getComments(int animeId) async {
+    try {
+      final response = await _dio.get('/animes/$animeId/comments');
+      return (response.data as List).map((e) => Map<String, dynamic>.from(e)).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<bool> addComment(int animeId, String text, int rating, {int? fandubId}) async {
+    try {
+      await _dio.post('/animes/$animeId/comments', data: {
+        'text': text,
+        'rating': rating,
+        if (fandubId != null) 'fandub_id': fandubId,
+      });
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   // --- Fandubs ---
   Future<List<Fandub>> getFandubs() async {
     final response = await _dio.get('/fandubs');
@@ -63,6 +86,20 @@ class ApiService {
     };
   }
 
+  Future<bool> createFandub(String name, String slug, String description, String? telegramChannel) async {
+    try {
+      await _dio.post('/fandubs', data: {
+        'name': name,
+        'slug': slug,
+        'description': description,
+        'telegram_channel': telegramChannel,
+      });
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   // --- Streaming Resolver ---
   Future<Map<String, dynamic>> resolveStream(int releaseId) async {
     final response = await _dio.get('/releases/$releaseId/stream');
@@ -70,34 +107,69 @@ class ApiService {
   }
 
   // --- User & Auth ---
-  Future<bool> login(String username, String password) async {
+  Future<Map<String, dynamic>?> login(String username, String password) async {
     try {
       final response = await _dio.post('/auth/login', data: {
         'username': username,
         'password': password,
       });
       final token = response.data['access_token'];
+      final user = response.data['user'];
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('access_token', token);
       await prefs.setString('username', username);
-      return true;
+      await prefs.setString('role', user['role'] ?? 'user');
+      return user;
     } catch (e) {
-      return false;
+      return null;
     }
   }
 
-  Future<bool> register(String username, String password) async {
+  Future<Map<String, dynamic>?> register(String username, String password, {String? email}) async {
     try {
       final response = await _dio.post('/auth/register', data: {
         'username': username,
         'password': password,
+        if (email != null && email.isNotEmpty) 'email': email,
       });
       final token = response.data['access_token'];
+      final user = response.data['user'];
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('access_token', token);
       await prefs.setString('username', username);
-      return true;
+      await prefs.setString('role', user['role'] ?? 'user');
+      return user;
     } catch (e) {
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> getMe() async {
+    try {
+      final response = await _dio.get('/auth/me');
+      return Map<String, dynamic>.from(response.data);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<bool> updateProfile({
+    String? avatarUrl,
+    int? preferredFandubId,
+    String? defaultQuality,
+    String? currentPassword,
+    String? newPassword,
+  }) async {
+    try {
+      await _dio.patch('/auth/profile', data: {
+        if (avatarUrl != null) 'avatar_url': avatarUrl,
+        if (preferredFandubId != null) 'preferred_fandub_id': preferredFandubId,
+        if (defaultQuality != null) 'default_quality': defaultQuality,
+        if (currentPassword != null) 'current_password': currentPassword,
+        if (newPassword != null) 'new_password': newPassword,
+      });
+      return true;
+    } catch (_) {
       return false;
     }
   }
@@ -107,6 +179,24 @@ class ApiService {
       'anime_id': animeId,
     });
     return response.data['status'] == 'added';
+  }
+
+  Future<List<Anime>> getFavorites() async {
+    try {
+      final response = await _dio.get('/user/favorites');
+      return (response.data as List).map((json) => Anime.fromJson(json)).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getHistory() async {
+    try {
+      final response = await _dio.get('/user/history');
+      return (response.data as List).map((e) => Map<String, dynamic>.from(e)).toList();
+    } catch (_) {
+      return [];
+    }
   }
 
   Future<void> saveHistory(int releaseId, int progressSeconds) async {
