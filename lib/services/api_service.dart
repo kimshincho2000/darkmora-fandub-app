@@ -228,4 +228,99 @@ class ApiService {
       });
     } catch (_) {}
   }
+
+  // --- Studio & Collaboration Pipeline ---
+  Future<List<DubberMember>> getStudioMembers(int fandubId) async {
+    try {
+      final res = await _dio.get('/studio/$fandubId/members');
+      return (res.data as List).map((e) => DubberMember.fromJson(e)).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<bool> addStudioMember(int fandubId, String stageName, String role, {String? bio, String? sampleAudioUrl, String? username}) async {
+    try {
+      await _dio.post('/studio/$fandubId/members', data: {
+        'stage_name': stageName,
+        'role': role,
+        if (bio != null) 'bio': bio,
+        if (sampleAudioUrl != null) 'sample_audio_url': sampleAudioUrl,
+        if (username != null) 'username': username,
+      });
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<List<ProductionTask>> getPipeline(int fandubId) async {
+    try {
+      final res = await _dio.get('/studio/$fandubId/pipeline');
+      return (res.data as List).map((e) => ProductionTask.fromJson(e)).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<bool> createPipelineTask(int fandubId, int animeId, int episodeNumber, {String? notes, String? scriptText, String? stage}) async {
+    try {
+      await _dio.post('/studio/$fandubId/pipeline', data: {
+        'anime_id': animeId,
+        'episode_number': episodeNumber,
+        if (stage != null) 'stage': stage,
+        if (notes != null) 'notes': notes,
+        if (scriptText != null) 'script_text': scriptText,
+      });
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> updateTaskStage(int taskId, String stage, {String? notes, String? scriptText, String? audioDraftUrl}) async {
+    try {
+      await _dio.patch('/studio/pipeline/$taskId/stage', data: {
+        'stage': stage,
+        if (notes != null) 'notes': notes,
+        if (scriptText != null) 'script_text': scriptText,
+        if (audioDraftUrl != null) 'audio_draft_url': audioDraftUrl,
+      });
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<List<StudioMessage>> getStudioChat(int fandubId) async {
+    try {
+      final res = await _dio.get('/studio/$fandubId/chat');
+      return (res.data as List).map((e) => StudioMessage.fromJson(e)).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<bool> sendStudioChat(int fandubId, String text, {int? taskId}) async {
+    try {
+      await _dio.post('/studio/$fandubId/chat', data: {
+        'text': text,
+        if (taskId != null) 'task_id': taskId,
+      });
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<List<DubberMember>> getDubbers({String? role}) async {
+    try {
+      final res = await _dio.get('/studio/dubbers/all', queryParameters: {
+        if (role != null) 'role': role,
+      });
+      return (res.data as List).map((e) => DubberMember.fromJson(e)).toList();
+    } catch (_) {
+      return [];
+    }
+  }
 }

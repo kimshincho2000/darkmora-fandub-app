@@ -7,6 +7,8 @@ import '../theme/app_theme.dart';
 import 'auth_screen.dart';
 import 'settings_screen.dart';
 import 'anime_detail_screen.dart';
+import 'studio_screen.dart';
+import 'dubbers_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -158,6 +160,18 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                 side: const BorderSide(color: AppTheme.line),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
+              icon: const Icon(Icons.record_voice_over, color: AppTheme.primary),
+              label: const Text("Ovoz ustalari & Dublyorlar", style: TextStyle(color: AppTheme.text)),
+              onPressed: () {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const DubbersScreen()));
+              },
+            ),
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: AppTheme.line),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
               icon: const Icon(Icons.settings, color: AppTheme.muted),
               label: const Text("Ilova Sozlamalari", style: TextStyle(color: AppTheme.text)),
               onPressed: _openSettings,
@@ -241,6 +255,78 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
             ],
           ),
         ),
+
+        // Quick Tools: Fandub Studio & Dubbers Catalog
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              Expanded(
+                child: InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => StudioScreen(
+                          initialFandubId: _user?['fandub_id'] ?? 1,
+                        ),
+                      ),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppTheme.primary.withOpacity(0.3)),
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.dashboard_customize, color: AppTheme.primary, size: 18),
+                        SizedBox(width: 6),
+                        Text(
+                          "Fandub Studio",
+                          style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: InkWell(
+                  onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const DubbersScreen()));
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+                    decoration: BoxDecoration(
+                      color: AppTheme.card,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppTheme.line),
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.record_voice_over, color: AppTheme.accent, size: 18),
+                        SizedBox(width: 6),
+                        Text(
+                          "Dublyorlar",
+                          style: TextStyle(color: AppTheme.text, fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
 
         // Tabs
         Container(

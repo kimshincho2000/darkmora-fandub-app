@@ -4,6 +4,7 @@ import '../models/models.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import 'anime_detail_screen.dart';
+import 'studio_screen.dart';
 
 class FandubDetailScreen extends StatefulWidget {
   final String slug;
@@ -19,6 +20,7 @@ class _FandubDetailScreenState extends State<FandubDetailScreen> {
   bool _isLoading = true;
   Fandub? _fandub;
   List<Anime> _animes = [];
+  List<DubberMember> _members = [];
 
   @override
   void initState() {
@@ -30,9 +32,12 @@ class _FandubDetailScreenState extends State<FandubDetailScreen> {
     setState(() => _isLoading = true);
     try {
       final res = await _apiService.getFandubDetail(widget.slug);
+      final fandub = res['fandub'] as Fandub;
+      final mem = await _apiService.getStudioMembers(fandub.id);
       setState(() {
-        _fandub = res['fandub'];
+        _fandub = fandub;
         _animes = res['animes'];
+        _members = mem;
         _isLoading = false;
       });
     } catch (_) {
@@ -116,6 +121,88 @@ class _FandubDetailScreenState extends State<FandubDetailScreen> {
             const SizedBox(height: 24),
 
             // Released Animes Header
+            // Studio Workspace Action
+            InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => StudioScreen(initialFandubId: _fandub!.id)),
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppTheme.card,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.primary.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.dashboard_customize_outlined, color: AppTheme.primary),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("Fandub Studio Workspace", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                          Text("Ishlab chiqarish jarayoni va ichki chat", style: TextStyle(color: AppTheme.muted, fontSize: 11)),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.arrow_forward_ios, size: 14, color: AppTheme.muted),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+
+            // Members / Dubbers Section
+            if (_members.isNotEmpty) ...[
+              const Text(
+                "Ovoz ustalari & Jamoa a'zolari",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                height: 100,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _members.length,
+                  itemBuilder: (ctx, idx) {
+                    final m = _members[idx];
+                    return Container(
+                      width: 80,
+                      margin: const EdgeInsets.only(right: 12),
+                      child: Column(
+                        children: [
+                          CircleAvatar(
+                            radius: 26,
+                            backgroundColor: AppTheme.card,
+                            backgroundImage: m.avatarUrl != null ? NetworkImage(m.avatarUrl!) : null,
+                            child: m.avatarUrl == null ? const Icon(Icons.person, color: AppTheme.primary) : null,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            m.stageName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+                          ),
+                          Text(
+                            m.roleLabel,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(color: AppTheme.muted, fontSize: 9),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 18),
+            ],
+
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [

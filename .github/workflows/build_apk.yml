@@ -54,9 +54,9 @@ jobs:
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.1.0
-          name: "DarkMora Fandub v1.1.0 (Full Edition)"
-          body: "Official DarkMora Multi-Tenant Fandub Anime Streaming Android APK with Auth, Settings, Comments & Multi-Fandub Live Switcher."
+          tag_name: v1.2.0
+          name: "DarkMora Fandub v1.2.0 (Studio & Dubbers Edition)"
+          body: "Official DarkMora Multi-Tenant Fandub Anime Streaming Android APK with Fandub Studio Workspace, Collaborative Kanban Pipeline, Studio Chat, and Dubbers Catalog."
           files: output/darkmora-fandub.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
