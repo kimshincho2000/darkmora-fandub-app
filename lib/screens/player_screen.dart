@@ -145,8 +145,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   decoration: BoxDecoration(
                     color: isSelected ? AppTheme.primary.withOpacity(0.15) : AppTheme.card,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.parse(
-                      isSelected ? "1px solid #E5484D" : "1px solid #2B2B36",
+                    border: Border.all(
+                      color: isSelected ? AppTheme.primary : AppTheme.line,
                     ),
                   ),
                   child: ListTile(
