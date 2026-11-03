@@ -1,0 +1,219 @@
+import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../models/models.dart';
+import '../services/api_service.dart';
+import '../theme/app_theme.dart';
+import 'anime_detail_screen.dart';
+
+class FandubDetailScreen extends StatefulWidget {
+  final String slug;
+
+  const FandubDetailScreen({Key? key, required this.slug}) : super(key: key);
+
+  @override
+  State<FandubDetailScreen> createState() => _FandubDetailScreenState();
+}
+
+class _FandubDetailScreenState extends State<FandubDetailScreen> {
+  final ApiService _apiService = ApiService();
+  bool _isLoading = true;
+  Fandub? _fandub;
+  List<Anime> _animes = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() => _isLoading = true);
+    try {
+      final res = await _apiService.getFandubDetail(widget.slug);
+      setState(() {
+        _fandub = res['fandub'];
+        _animes = res['animes'];
+        _isLoading = false;
+      });
+    } catch (_) {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator(color: AppTheme.primary)),
+      );
+    }
+
+    if (_fandub == null) {
+      return Scaffold(
+        appBar: AppBar(),
+        body: const Center(child: Text("Fandub jamoasi topilmadi")),
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(_fandub!.name),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Fandub Profile Card
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.card,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppTheme.line),
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 36,
+                    backgroundColor: AppTheme.surface,
+                    backgroundImage: _fandub!.logoUrl != null
+                        ? CachedNetworkImageProvider(_fandub!.logoUrl!)
+                        : null,
+                    child: _fandub!.logoUrl == null
+                        ? const Icon(Icons.mic, size: 36, color: AppTheme.primary)
+                        : null,
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              _fandub!.name,
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                            ),
+                            if (_fandub!.isVerified) ...[
+                              const SizedBox(width: 6),
+                              const Icon(Icons.verified, color: Colors.blueAccent, size: 18),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        if (_fandub!.description != null)
+                          Text(
+                            _fandub!.description!,
+                            style: const TextStyle(color: AppTheme.muted, fontSize: 13),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Released Animes Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  "Ovoz berilgan animelar",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  "${_animes.length} ta",
+                  style: const TextStyle(color: AppTheme.muted),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+
+            // Anime Grid
+            _animes.isEmpty
+                ? const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 40),
+                    child: Center(
+                      child: Text(
+                        "Hozircha animelar yuklanmagan",
+                        style: TextStyle(color: AppTheme.muted),
+                      ),
+                    ),
+                  )
+                : GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      childAspectRatio: 0.68,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                    ),
+                    itemCount: _animes.length,
+                    itemBuilder: (context, index) {
+                      final anime = _animes[index];
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => AnimeDetailScreen(slugOrId: anime.slug),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: AppTheme.card,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppTheme.line),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: ClipRRect(
+                                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                                  child: anime.posterUrl != null
+                                      ? CachedNetworkImage(
+                                          imageUrl: anime.posterUrl!,
+                                          width: double.infinity,
+                                          fit: BoxFit.cover,
+                                        )
+                                      : Container(color: AppTheme.surface),
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      anime.title,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      anime.genres ?? "Anime",
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(color: AppTheme.muted, fontSize: 11),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ],
+        ),
+      ),
+    );
+  }
+}
