@@ -29,9 +29,9 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Complete platform scaffolding
+      - name: Create official Android scaffolding
         run: |
-          flutter create --platforms=android --org uz.darkmora .
+          flutter create --platforms=android --org uz.darkmora --project-name darkmora_fandub .
 
       - name: Get Flutter dependencies
         run: flutter pub get
@@ -39,24 +39,24 @@ jobs:
       - name: Build APK (Release)
         run: flutter build apk --release
 
-      - name: Prepare APK artifact
+      - name: Copy and rename APK
         run: |
-          cp build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/darkmora-fandub.apk
+          mkdir -p output
+          cp build/app/outputs/flutter-apk/app-release.apk output/darkmora-fandub.apk
 
       - name: Upload APK to GitHub Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: darkmora-fandub-apk
-          path: build/app/outputs/flutter-apk/darkmora-fandub.apk
+          path: output/darkmora-fandub.apk
           retention-days: 30
 
-      - name: Release APK
+      - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         with:
           tag_name: v1.0.0
-          name: "DarkMora Fandub Mobile v1.0.0"
-          body: "DarkMora Multi-Tenant Fandub Anime Streaming Android APK."
-          files: build/app/outputs/flutter-apk/darkmora-fandub.apk
+          name: "DarkMora Fandub v1.0.0"
+          body: "Official DarkMora Multi-Tenant Fandub Anime Streaming Android APK."
+          files: output/darkmora-fandub.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
