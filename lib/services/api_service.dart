@@ -113,6 +113,9 @@ class ApiService {
         'username': username,
         'password': password,
       });
+      if (response.data['requires_2fa'] == true) {
+        return response.data;
+      }
       final token = response.data['access_token'];
       final user = response.data['user'];
       final prefs = await SharedPreferences.getInstance();
@@ -122,6 +125,24 @@ class ApiService {
       return user;
     } catch (e) {
       return null;
+    }
+  }
+
+  Future<bool> verify2FA(String sessionToken, String code) async {
+    try {
+      final response = await _dio.post('/auth/verify-2fa', data: {
+        'session_token': sessionToken,
+        'code': code,
+      });
+      final token = response.data['access_token'];
+      final user = response.data['user'];
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('access_token', token);
+      await prefs.setString('username', user['username']);
+      await prefs.setString('role', user['role'] ?? 'user');
+      return true;
+    } catch (e) {
+      return false;
     }
   }
 
